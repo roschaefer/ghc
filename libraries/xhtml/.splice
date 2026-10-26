@@ -1,0 +1,6 @@
+[splice]
+	id = 42cb7043d6a931e0
+	commit = 6303822a6f908ad870df7c8729512c6fbd2313d5
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/xhtml.git
+	default-pin = 6303822a6f908ad870df7c8729512c6fbd2313d5

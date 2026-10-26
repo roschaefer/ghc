@@ -2,10 +2,6 @@
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git
 	ignore = untracked
-[submodule "libraries/xhtml"]
-	path = libraries/xhtml
-	url = https://gitlab.haskell.org/ghc/packages/xhtml.git
-	ignore = untracked
 [submodule "libraries/Win32"]
 	path = libraries/Win32
 	url = https://gitlab.haskell.org/ghc/packages/Win32.git
