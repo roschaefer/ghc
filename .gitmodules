@@ -2,10 +2,6 @@
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git
 	ignore = untracked
-[submodule "libraries/hpc"]
-	path = libraries/hpc
-	url = https://gitlab.haskell.org/ghc/packages/hpc.git
-	ignore = untracked
 [submodule "libraries/parsec"]
 	path = libraries/parsec
 	url = https://gitlab.haskell.org/ghc/packages/parsec.git
