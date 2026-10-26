@@ -1,0 +1,6 @@
+[splice]
+	id = db0b8e24b48a2fa9
+	commit = 303cb8281dbc50f62461c2238667018c43debb42
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/unix.git
+	default-pin = 303cb8281dbc50f62461c2238667018c43debb42
