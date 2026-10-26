@@ -1,0 +1,6 @@
+[splice]
+	id = c5897958b9e62bbf
+	commit = 507f50844802f1469ba6cadfeefd4e3fecee0416
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/time.git
+	default-pin = 507f50844802f1469ba6cadfeefd4e3fecee0416

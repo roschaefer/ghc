@@ -1,0 +1,85 @@
+Before release:
+
+1. Check milestone is complete
+
+    https://github.com/haskell/time/milestones
+
+2. Pull upstream changes
+
+    git switch master
+    git pull
+
+3. Update version numbers
+
+    https://pvp.haskell.org/
+    time.cabal
+    configure.ac
+
+4. Update changelog, add current UTC date
+
+    date -u
+    changelog.md
+
+5. Use correct & latest GHC versions
+
+    https://gitlab.haskell.org/ghc/ghc/-/wikis/GHC%20Status
+    time.cabal
+        - tested-with
+        - base dependency lower bound
+    .devcontainer/Dockerfile
+    .github/workflows/ci.yml
+
+6. Format, build & test
+
+    just fullbuild
+
+7. Inspect generated haddock, if necessary
+
+    dist-newstyle/build/*/ghc-*/time-*/doc/html/time/index.html
+
+8. Commit and push changes to repo
+
+    git commit -a
+    git push
+
+9. Check GitHub builds
+
+    https://github.com/haskell/time/actions
+
+10. Upload candidate to Hackage
+
+    git clean -dXf
+    just shell
+      autoreconf -i
+      ghcup set ghc $LATESTGHC
+      cabal sdist
+      cabal upload dist-newstyle/sdist/time-*.tar.gz
+
+11. Examine Hackage candidate (?)
+
+    https://hackage.haskell.org/package/time-$VERSION/candidate
+
+12. Publish Hackage candidate
+
+13.  Tag commit
+
+    git tag -a -s $VERSION -m "Version $VERSION"
+    git push --tags
+
+14.  Update ghc branch
+
+    git switch ghc
+    git merge master
+    git push
+
+15.  Restore local branch for next development
+
+    git switch master
+
+16.  Close completed milestone
+
+    https://github.com/haskell/time/milestones
+
+17.  Inform GHC team
+
+    https://gitlab.haskell.org/ghc/ghc/-/issues
