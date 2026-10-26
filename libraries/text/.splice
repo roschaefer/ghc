@@ -1,0 +1,6 @@
+[splice]
+	id = 031c1c969027f48e
+	commit = 423fd981e576bd17a8b5fa48d0ad6b9a0c370e77
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/text.git
+	default-pin = 423fd981e576bd17a8b5fa48d0ad6b9a0c370e77

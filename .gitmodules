@@ -2,10 +2,6 @@
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git
 	ignore = untracked
-[submodule "libraries/text"]
-	path = libraries/text
-	url = https://gitlab.haskell.org/ghc/packages/text.git
-	ignore = untracked
 [submodule "libraries/mtl"]
 	path = libraries/mtl
 	url = https://gitlab.haskell.org/ghc/packages/mtl.git
