@@ -1,0 +1,6 @@
+[splice]
+	id = be3039c05eef0d89
+	commit = 4b5080f43cbc372a437d5fecb144c7b75aadd86b
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/mtl.git
+	default-pin = 4b5080f43cbc372a437d5fecb144c7b75aadd86b
