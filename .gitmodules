@@ -2,10 +2,6 @@
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git
 	ignore = untracked
-[submodule "nofib"]
-	path = nofib
-	url = https://gitlab.haskell.org/ghc/nofib.git
-	ignore = untracked
 [submodule "utils/hsc2hs"]
 	path = utils/hsc2hs
 	url = https://gitlab.haskell.org/ghc/hsc2hs.git

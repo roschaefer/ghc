@@ -1,0 +1,6 @@
+[splice]
+	id = 4c2cae6d1c052ed1
+	commit = d4750745a96ee293612cef0fedd8ed2c9ae8d1a0
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/nofib.git
+	default-pin = d4750745a96ee293612cef0fedd8ed2c9ae8d1a0

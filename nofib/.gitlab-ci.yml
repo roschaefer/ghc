@@ -1,0 +1,37 @@
+# Commit taken from https://gitlab.haskell.org/ghc/ci-images
+variables:
+  # Always start with a fresh clone to avoid non-hermetic builds
+  GIT_STRATEGY: clone
+
+.validate-hadrian:
+  image: "registry.gitlab.haskell.org/ghc/ci-images/x86_64-linux-deb12:latest"
+  tags:
+    - x86_64-linux
+  before_script:
+    - sudo chown ghc:ghc -R .
+    - git clean -xdf
+    - $GHC --version
+    - cabal --version
+  script:
+    - git submodule update --init --recursive
+    - $GHC --version
+    - cabal update
+    - cabal new-run -w $GHC nofib-run -- -o out -w "$GHC" $EXTRA_ARGS
+    - mkdir -p results
+    - $GHC --info > results/compiler-info
+    - cp _make/out/*.results.tsv results
+  artifacts:
+    paths:
+      - results
+
+validate-hadrian-normal:
+  extends:
+    - .validate-hadrian
+  variables:
+    EXTRA_ARGS: "--speed=Norm"
+
+validate-hadrian-fast:
+  extends:
+    - .validate-hadrian
+  variables:
+    EXTRA_ARGS: "--speed=Fast"

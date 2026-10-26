@@ -1,0 +1,22 @@
+cabal-version:      3.0
+name:               nofib-common
+
+version:            0.1.0.0
+
+license:            NONE
+
+build-type:         Simple
+
+common warnings
+    ghc-options: -Wall -Wno-unused-imports
+
+library
+    import:           warnings
+
+    exposed-modules:  NofibUtils
+
+    build-depends:    base
+
+    hs-source-dirs:   .
+
+    default-language: Haskell2010
