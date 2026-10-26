@@ -1,0 +1,6 @@
+[splice]
+	id = d8e21225bd7e39bb
+	commit = 15f8a71056a4e056881333d8b7ec32b6af6e92d9
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/parsec.git
+	default-pin = 15f8a71056a4e056881333d8b7ec32b6af6e92d9
