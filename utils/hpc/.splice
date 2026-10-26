@@ -1,0 +1,6 @@
+[splice]
+	id = 695eb08d0a310379
+	commit = dd43f7e139d7a4f4908d1e8af35a75939f763ef1
+[upstream "origin"]
+	url = https://gitlab.haskell.org/hpc/hpc-bin.git
+	default-pin = dd43f7e139d7a4f4908d1e8af35a75939f763ef1
