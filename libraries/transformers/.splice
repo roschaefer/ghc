@@ -1,0 +1,6 @@
+[splice]
+	id = 365d4eea100c2a92
+	commit = 0d615bc2457d5d2c695dcfdb902d88c1225beff3
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/transformers.git
+	default-pin = 0d615bc2457d5d2c695dcfdb902d88c1225beff3
