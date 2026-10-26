@@ -1,0 +1,6 @@
+[splice]
+	id = a345d36c8ddd6831
+	commit = a4681eff47985e081342fd9351f73d84f5429550
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/template-haskell-quasiquoter.git
+	default-pin = a4681eff47985e081342fd9351f73d84f5429550

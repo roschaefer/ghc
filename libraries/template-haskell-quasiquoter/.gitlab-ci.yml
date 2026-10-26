@@ -1,0 +1,46 @@
+.build_template: &build_config
+  tags:
+    - x86_64-linux
+  script:
+    - cabal update
+    - cabal build
+    - cabal haddock --haddock-hoogle |& tee haddock-log
+    - mkdir -p out
+    - cp $(tail -n1 haddock-log) out/$(ghc --numeric-version).txt
+    - diff out/$(ghc --numeric-version).txt interface-stability/$(ghc --numeric-version).txt
+  artifacts:
+    paths:
+      - out/*
+    when: always
+
+build 8.10:
+  image: haskell:8.10.7
+  <<: *build_config
+
+build 9.0:
+  image: haskell:9.0.2
+  <<: *build_config
+
+build 9.2:
+  image: haskell:9.2.8
+  <<: *build_config
+
+build 9.4:
+  image: haskell:9.4.8
+  <<: *build_config
+
+build 9.6:
+  image: haskell:9.6.7
+  <<: *build_config
+
+build 9.8:
+  image: haskell:9.8.4
+  <<: *build_config
+
+build 9.10:
+  image: haskell:9.10.2
+  <<: *build_config
+
+build 9.12:
+  image: haskell:9.12.2
+  <<: *build_config
