@@ -1,0 +1,7 @@
+packages: . testsuite/ bench/
+
+package testsuite
+  tests: true
+
+package stm-bench
+  benchmarks: true

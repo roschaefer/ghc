@@ -1,0 +1,4 @@
+jobs-selection:         any
+install-dependencies:   False
+installed:              +all -exceptions -filepath
+distribution:           jammy

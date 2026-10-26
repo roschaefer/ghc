@@ -1,0 +1,6 @@
+[splice]
+	id = 6c3fbf3bb4d702f1
+	commit = 8048fdc77007a8c37156218a2429feb7f23d945c
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/stm.git
+	default-pin = 8048fdc77007a8c37156218a2429feb7f23d945c
