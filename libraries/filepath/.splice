@@ -1,0 +1,6 @@
+[splice]
+	id = 2dd0c642424efcf5
+	commit = 4657d3445cc5f280af051dc04942e2683a1a7b44
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/filepath.git
+	default-pin = 4657d3445cc5f280af051dc04942e2683a1a7b44
