@@ -1,0 +1,6 @@
+[splice]
+	id = aaa371e035d5c142
+	commit = 0ac065c152e8fbae6c05e9db424baee66b98797e
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/hsc2hs.git
+	default-pin = 0ac065c152e8fbae6c05e9db424baee66b98797e
