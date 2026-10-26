@@ -1,0 +1,6 @@
+[splice]
+	id = b38185beaa8d7da6
+	commit = 0425ac9bf6d1971e77123efc5f35532920c0c477
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/os-string
+	default-pin = 0425ac9bf6d1971e77123efc5f35532920c0c477
