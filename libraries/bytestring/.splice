@@ -1,0 +1,6 @@
+[splice]
+	id = a75167093e06e366
+	commit = d984ad00644c0157bad04900434b9d36f23633c5
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/bytestring.git
+	default-pin = d984ad00644c0157bad04900434b9d36f23633c5

@@ -1,7 +1,3 @@
-[submodule "libraries/bytestring"]
-	path = libraries/bytestring
-	url = https://gitlab.haskell.org/ghc/packages/bytestring.git
-	ignore = untracked
 [submodule "libraries/Cabal"]
 	path = libraries/Cabal
 	url = https://gitlab.haskell.org/ghc/packages/Cabal.git
