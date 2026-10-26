@@ -1,0 +1,6 @@
+[splice]
+	id = 0d819bb3e9031f21
+	commit = 82d5cfb2c597fa0bb67175c47b682dee1d24ee7a
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/directory.git
+	default-pin = 82d5cfb2c597fa0bb67175c47b682dee1d24ee7a

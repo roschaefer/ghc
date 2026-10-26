@@ -1,0 +1,84 @@
+name: build
+on:
+  pull_request:
+  push:
+    branches:
+      - "**"
+  schedule:
+    - cron: 35 8 3 * *
+  workflow_dispatch:
+defaults:
+  run:
+    shell: bash
+jobs:
+  build:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-latest, stack: lts-20.26, stack-extra-deps: "bytestring-0.11.3.0, file-io-0.1.4, filepath-1.5.2.0, os-string-2.0.2, unix-2.8.5.1", stack-package-flags: "{file-io: {os-string: true}, unix: {os-string: true}}" }
+          - { os: macos-latest, stack: lts-24.29, ghc-flags: -Werror=deprecations }
+          - { os: ubuntu-latest, ghc: 8.10.7, cabal: 3.8.1.0 }
+          - { os: ubuntu-latest, ghc: 9.4.8, cabal: 3.12.1.0 }
+          - { os: ubuntu-latest, ghc: latest, cabal: 3.16.1.0, upload-sdist: true, ghc-flags: -Werror=deprecations }
+          - { os: windows-latest, stack: lts-16.31, stack-extra-deps: "bytestring-0.11.3.0, file-io-0.1.4, filepath-1.4.100.0, time-1.9.3, Win32-2.14.1.0", overrides: "before_prepare() { sed -i.bak -e /CreateSymbolicLinkW/d -e /GetFinalPathNameByHandleW/d configure.ac; }" }
+          - { os: windows-latest, stack: lts-24.29, ghc-flags: -Werror=deprecations }
+    runs-on: ${{ matrix.os }}
+    env:
+      CABAL_CONSTRAINTS: ${{ matrix.cabal-constraints }}
+      CABAL_PACKAGE_FLAGS: ${{ matrix.cabal-package-flags }}
+      GHC_FLAGS: ${{ matrix.ghc-flags }}
+      TESTSCRIPT_OVERRIDES: ${{ matrix.overrides }}
+      STACK_EXTRA_DEPS: ${{ matrix.stack-extra-deps }}
+      STACK_PACKAGE_FLAGS: ${{ matrix.stack-package-flags }}
+      STACK_RESOLVER: ${{ matrix.stack }}
+    steps:
+      - if: startsWith(matrix.os, 'macos-')
+        run: brew install automake
+      - if: startsWith(matrix.os, 'ubuntu-')
+        run: |
+          sudo apt-get update
+      - if: startsWith(matrix.os, 'windows-')
+        run: |
+          echo STACK_FLAGS=--skip-msys >> $GITHUB_ENV
+          echo 'C:\msys64\usr\bin' >> $GITHUB_PATH
+      - if: startsWith(matrix.os, 'windows-')
+        run: |
+          pacman -S --needed --noconfirm autoconf automake
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          cabal-version: ${{ matrix.cabal }}
+          enable-stack: ${{ matrix.stack }}
+          stack-no-global: ${{ matrix.stack }}
+      - uses: actions/checkout@v3
+      - run: tools/testscript prepare
+      - run: tools/testscript build
+      - if: matrix.upload-sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: sdist
+          path: dist-newstyle/sdist/*-*.tar.gz
+  hlint:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+    runs-on: ubuntu-latest
+    steps:
+      - uses: haskell-actions/hlint-setup@v2
+        with:
+          version: "3.10"
+      - uses: actions/checkout@v3
+      - run: |
+          autoreconf -i
+          echo ::add-matcher::.github/problem_matcher.json
+          trap 'echo ::remove-matcher owner=directory::' 0 1 2 15
+          hlint .
+  lint:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: |
+          echo ::add-matcher::.github/problem_matcher.json
+          trap 'echo ::remove-matcher owner=directory::' 0 1 2 15
+          tools/lint
