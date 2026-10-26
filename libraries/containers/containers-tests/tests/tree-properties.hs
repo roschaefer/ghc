@@ -1,0 +1,534 @@
+{-# LANGUAGE CPP #-}
+
+import Data.Tree as T
+
+import Control.Applicative (Const(Const, getConst), pure, (<$>), (<*>), liftA2)
+
+import Test.Tasty
+import Test.Tasty.HUnit
+import Test.Tasty.QuickCheck
+import Test.QuickCheck.Function (apply)
+import Test.QuickCheck.Poly (A, B, C, OrdA)
+import qualified Test.QuickCheck.Classes.Base as Laws
+import Test.ChasingBottoms.IsBottom (isBottom)
+import Control.Monad.Fix (MonadFix (..))
+import Control.Monad (ap)
+import Data.Coerce (coerce)
+import Data.Foldable (fold, foldl', toList)
+import qualified Data.Foldable as Foldable
+import qualified Data.List as List
+import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
+import Data.Proxy (Proxy(..))
+import Data.Traversable (foldMapDefault)
+#if !(MIN_VERSION_base(4,11,0))
+import Data.Semigroup (Semigroup ((<>)))
+#endif
+#if MIN_VERSION_base(4,18,0)
+import qualified Data.Foldable1 as Foldable1
+#endif
+
+import Utils.QuickCheckClasses (testLaws)
+import Utils.Strictness (Bot(..), Func2, applyFunc2)
+
+default (Int)
+
+main :: IO ()
+main = defaultMain $ testGroup "tree-properties"
+         [
+           testCase     "foldr"                    test_foldr
+         , testProperty "monad_id1"                prop_monad_id1
+         , testProperty "monad_id2"                prop_monad_id2
+         , testProperty "monad_assoc"              prop_monad_assoc
+         , testProperty "ap_ap"                    prop_ap_ap
+         , testProperty "ap_liftA2"                prop_ap_liftA2
+         , testProperty "monadFix_ls"              prop_monadFix_ls
+         , testProperty "toList"                   prop_toList
+         , testProperty "foldMap"                  prop_foldMap
+         , testProperty "foldMap_structure"        prop_foldMap_structure
+         , testProperty "foldl'"                   prop_foldl'
+         , testProperty "foldr1"                   prop_foldr1
+         , testProperty "foldl1"                   prop_foldl1
+         , testProperty "foldr_infinite"           prop_foldr_infinite
+         , testProperty "maximum"                  prop_maximum
+         , testProperty "minimum"                  prop_minimum
+         , testProperty "sum"                      prop_sum
+         , testProperty "product"                  prop_product
+         , testProperty "traverse"                 prop_traverse
+#if MIN_VERSION_base(4,18,0)
+         , testProperty "foldMap1_structure"       prop_foldMap1_structure
+         , testProperty "toNonEmpty"               prop_toNonEmpty
+         , testProperty "last"                     prop_last
+         , testProperty "last_path"                prop_last_path
+         , testProperty "foldrMap1"                prop_foldrMap1
+         , testProperty "foldlMap1'"               prop_foldlMap1'
+         , testProperty "foldlMap1"                prop_foldlMap1
+#endif
+         , testProperty "leaves"                   prop_leaves
+         , testProperty "edges"                    prop_edges
+         , testProperty "pathsToRoot"              prop_pathsToRoot
+         , testProperty "pathsFromRoot"            prop_pathsFromRoot
+         , testProperty "unfoldTreeM"              prop_unfoldTreeM
+         , testProperty "unfoldForestM"            prop_unfoldForestM
+         , testProperty "unfoldTreeM_BF"           prop_unfoldTreeM_BF
+         , testProperty "unfoldForestM_BF"         prop_unfoldForestM_BF
+         , testLaws $ Laws.eqLaws (Proxy :: Proxy (Tree A))
+         , testLaws $ Laws.ordLaws (Proxy :: Proxy (Tree OrdA))
+         , testLaws $ Laws.showLaws (Proxy :: Proxy (Tree A))
+-- Requires Arbitrary1 on GHC <8.6, skip
+#if __GLASGOW_HASKELL__ >= 806
+         , testLaws $ Laws.foldableLaws (Proxy :: Proxy Tree)
+         , testLaws $ Laws.functorLaws (Proxy :: Proxy Tree)
+         , testLaws $ Laws.traversableLaws (Proxy :: Proxy Tree)
+         , testLaws $ Laws.applicativeLaws (Proxy :: Proxy Tree)
+         , testLaws $ Laws.monadLaws (Proxy :: Proxy Tree)
+         , testLaws $ Laws.monadZipLaws (Proxy :: Proxy Tree)
+#endif
+         , testGroup "PostOrder"
+           [ testCase "foldr"                      test_PostOrder_foldr
+           , testProperty "toList"                 prop_PostOrder_toList
+           , testProperty "foldMap"                prop_PostOrder_foldMap
+           , testProperty "foldMap_structure"      prop_PostOrder_foldMap_structure
+           , testProperty "foldl'"                 prop_PostOrder_foldl'
+           , testProperty "foldr1"                 prop_PostOrder_foldr1
+           , testProperty "foldl1"                 prop_PostOrder_foldl1
+           , testProperty "foldr_infinite"         prop_PostOrder_foldr_infinite
+           , testProperty "maximum"                prop_PostOrder_maximum
+           , testProperty "minimum"                prop_PostOrder_minimum
+           , testProperty "sum"                    prop_PostOrder_sum
+           , testProperty "product"                prop_PostOrder_product
+           , testProperty "traverse"               prop_PostOrder_traverse
+#if MIN_VERSION_base(4,18,0)
+           , testProperty "foldMap1_structure"     prop_PostOrder_foldMap1_structure
+           , testProperty "toNonEmpty"             prop_PostOrder_toNonEmpty
+           , testProperty "foldrMap1"              prop_PostOrder_foldrMap1
+           , testProperty "foldlMap1'"             prop_PostOrder_foldlMap1'
+           , testProperty "foldlMap1"              prop_PostOrder_foldlMap1
+#endif
+-- Requires Arbitrary1 on GHC <8.6, skip
+#if __GLASGOW_HASKELL__ >= 806
+           , testLaws $ Laws.foldableLaws (Proxy :: Proxy PostOrder)
+           , testLaws $ Laws.functorLaws (Proxy :: Proxy PostOrder)
+           , testLaws $ Laws.traversableLaws (Proxy :: Proxy PostOrder)
+#endif
+           ]
+         , testGroup "strictness"
+           [ testProperty "foldr" prop_strictness_foldr
+           , testProperty "foldl'" prop_strictness_foldl'
+           , testGroup "PostOrder"
+             [ testProperty "foldr" prop_PostOrder_strictness_foldr
+             , testProperty "foldl" prop_PostOrder_strictness_foldl
+             , testProperty "foldr'" prop_PostOrder_strictness_foldr'
+             , testProperty "foldl'" prop_PostOrder_strictness_foldl'
+             ]
+           ]
+         ]
+
+{--------------------------------------------------------------------
+  Arbitrary trees
+--------------------------------------------------------------------}
+
+
+-- This instance isn't balanced very well; the trees will probably tend
+-- to lean left. But it's better than nothing and we can fix it later.
+instance Arbitrary a => Arbitrary (Tree a) where
+  arbitrary = sized (fmap snd . arbtree)
+    where
+      arbtree :: Arbitrary a => Int -> Gen (Int, Tree a)
+      arbtree 0 = fmap ((,) 1) $ Node <$> arbitrary <*> pure []
+      arbtree n = do
+        root <- arbitrary
+        num_children <- choose (0, n - 1)
+        (st, tl) <- go num_children
+        return (1+st, Node root tl)
+
+      go 0 = pure (0, [])
+      go n = do
+        (sh, hd) <- arbtree n
+        (st, tl) <- go (n - sh)
+        pure (sh + st, hd : tl)
+
+#if defined(__GLASGOW_HASKELL__)
+  shrink = genericShrink
+#endif
+
+instance Arbitrary a => Arbitrary (PostOrder a) where
+  arbitrary = PostOrder <$> arbitrary
+  shrink = map PostOrder . shrink . unPostOrder
+
+----------------------------------------------------------------
+-- Utilities
+----------------------------------------------------------------
+
+data Magma a
+  = Inj a
+  | Magma a :* Magma a
+  deriving (Eq, Show)
+
+-- Unlawful on purpose.
+instance Semigroup (Magma a) where
+  (<>) = (:*)
+
+data UnitalMagma a
+  = Unit
+  | UInj a
+  | UnitalMagma a :** UnitalMagma a
+  deriving (Eq, Show)
+
+-- Unlawful on purpose.
+instance Semigroup (UnitalMagma a) where
+  (<>) = (:**)
+
+-- Unlawful on purpose.
+instance Monoid (UnitalMagma a) where
+  mempty = Unit
+  mappend = (<>)
+
+----------------------------------------------------------------
+-- Unit tests
+----------------------------------------------------------------
+
+test_foldr :: Assertion
+test_foldr = do
+  foldr (:) [] (Node 1 []) @?= [1]
+  foldr (:) [] (Node 1 [Node 2 [Node 3 []]]) @?= [1..3]
+  foldr (:) [] (Node 1 [Node 2 [Node 3 [], Node 4 []], Node 5 [Node 6 [], Node 7 []]]) @?= [1..7]
+
+test_PostOrder_foldr :: Assertion
+test_PostOrder_foldr = do
+  foldr (:) [] (PostOrder (Node 1 [])) @?= [1]
+  foldr (:) [] (PostOrder (Node 1 [Node 2 [Node 3 []]])) @?= [3,2,1]
+  foldr (:) [] (PostOrder (Node 1 [Node 2 [Node 3 [], Node 4 []], Node 5 [Node 6 [], Node 7 []]])) @?= [3,4,2,6,7,5,1]
+
+----------------------------------------------------------------
+-- QuickCheck
+----------------------------------------------------------------
+
+apply2 :: Fun (a, b) c -> a -> b -> c
+apply2 f a b = apply f (a, b)
+
+prop_ap_ap :: Tree (Fun A B) -> Tree A -> Property
+prop_ap_ap fs xs = (apply <$> fs <*> xs) === ((apply <$> fs) `ap` xs)
+
+prop_ap_liftA2 :: Fun (A, B) C -> Tree A -> Tree B -> Property
+prop_ap_liftA2 f as bs = (apply2 f <$> as <*> bs) === liftA2 (apply2 f) as bs
+
+prop_monad_id1 :: Tree A -> Property
+prop_monad_id1 t = (t >>= pure) === t
+
+prop_monad_id2 :: A -> Fun A (Tree B) -> Property
+prop_monad_id2 a f = (pure a >>= apply f) === apply f a
+
+prop_monad_assoc :: Tree A -> Fun A (Tree B) -> Fun B (Tree C) -> Property
+prop_monad_assoc ta atb btc =
+  ((ta >>= apply atb) >>= apply btc)
+  ===
+  (ta >>= \a -> apply atb a >>= apply btc)
+
+-- The left shrinking law
+--
+-- This test is kind of wonky and unprincipled, because it's
+-- rather tricky to construct test cases!
+-- This is the most important MonadFix law to test because it's the
+-- least intuitive by far, and because it's the only one that's
+-- sensitive to the Monad instance.
+prop_monadFix_ls :: Int -> Tree Int -> Fun Int (Tree Int) -> Property
+prop_monadFix_ls val ta ti =
+  fmap ($ val) (mfix (\x -> ta >>= \y -> f x y))
+  ===
+  fmap ($ val) (ta >>= \y -> mfix (\x -> f x y))
+  where
+    fact :: Int -> (Int -> Int) -> Int -> Int
+    fact x _ 0 = x + 1
+    fact x f n = x + n * f ((n - 1) `mod` 23)
+
+    f :: (Int -> Int) -> Int -> Tree (Int -> Int)
+    f q y = let t = apply ti y
+            in fmap (\w -> fact w q) t
+
+prop_toList :: Tree A -> Property
+prop_toList t = toList t === foldr (:) [] t
+
+prop_foldMap :: Tree A -> Property
+prop_foldMap t =
+  foldMap (:[]) t === toList t .&&.
+  foldMap (:[]) t === foldMapDefault (:[]) t
+
+-- Note: We use UnitalMagma with foldMap to test that the structure of the fold
+-- follows that of the tree. This is desirable here because we can be more
+-- efficient/lazy with some monoids, such as Data.Monoid.Last, compared
+-- to a foldr-based foldMap.
+prop_foldMap_structure :: Tree A -> Property
+prop_foldMap_structure t =
+  foldMap UInj t === foldTree (\x ys -> fold (UInj x : ys)) t
+
+prop_foldl' :: Tree A -> Property
+prop_foldl' t = foldl' (flip (:)) [] t === reverse (toList t)
+
+prop_foldr1 :: Tree A -> Property
+prop_foldr1 t = foldr1 (:*) (fmap Inj t) === foldr1 (:*) (map Inj (toList t))
+
+prop_foldl1 :: Tree A -> Property
+prop_foldl1 t = foldl1 (:*) (fmap Inj t) === foldl1 (:*) (map Inj (toList t))
+
+prop_foldr_infinite :: NonNegative Int -> Property
+prop_foldr_infinite (NonNegative n) =
+    forAllShow genInf (const "<possibly infinite tree>") $
+        \t -> length (take n (foldr (:) [] t)) <= n
+  where
+    genInf = Node () <$> oneof [listOf genInf, infiniteListOf genInf]
+
+prop_maximum :: Tree OrdA -> Property
+prop_maximum t = maximum t === maximum (toList t)
+
+prop_minimum :: Tree OrdA -> Property
+prop_minimum t = minimum t === minimum (toList t)
+
+prop_sum :: Tree OrdA -> Property
+prop_sum t = sum t === sum (toList t)
+
+prop_product :: Tree OrdA -> Property
+prop_product t = product t === product (toList t)
+
+prop_traverse :: Fun A B -> Tree A -> Property
+prop_traverse f t = xs === toList t .&&. t' === fmap (applyFun f) t
+  where
+    (xs, t') = traverse (\x -> ([x], applyFun f x)) t
+
+#if MIN_VERSION_base(4,18,0)
+-- Note: We use Magma with foldMap1 to test that the structure of the fold
+-- follows that of the tree. This is desirable here because we can be more
+-- efficient/lazy with some semigroups, such as Data.Semigroup.Last, compared
+-- to a foldrMap1-based foldMap1.
+prop_foldMap1_structure :: Tree A -> Property
+prop_foldMap1_structure t =
+  Foldable1.foldMap1 Inj t === foldTree (\x ys -> Foldable1.fold1 (Inj x :| ys)) t
+
+prop_toNonEmpty :: Tree A -> Property
+prop_toNonEmpty t = Foldable1.toNonEmpty t === NE.fromList (toList t)
+
+prop_last :: Tree A -> Property
+prop_last t = Foldable1.last t === NE.last (Foldable1.toNonEmpty t)
+
+-- Tests that last only looks at the path going down to the last leaf.
+prop_last_path :: Tree A -> Property
+prop_last_path t = Foldable1.last (replace t) === Foldable1.last t
+  where
+    -- Replace all trees with bottom except for the last one.
+    replace :: Tree a -> Tree a
+    replace (Node x ts) = Node x (replaces ts)
+    replaces :: [Tree a] -> [Tree a]
+    replaces [] = []
+    replaces [t] = [replace t]
+    replaces (t:ts) = error "error tree" : replaces ts
+
+prop_foldrMap1 :: Tree A -> Property
+prop_foldrMap1 t =
+    Foldable1.foldrMap1 Inj f t === Foldable1.foldrMap1 Inj f (Foldable1.toNonEmpty t)
+  where
+    f x z = Inj x :* z
+
+prop_foldlMap1' :: Tree A -> Property
+prop_foldlMap1' t =
+    Foldable1.foldlMap1' Inj f t === Foldable1.foldlMap1' Inj f (Foldable1.toNonEmpty t)
+  where
+    f z x = z :* Inj x
+
+prop_foldlMap1 :: Tree A -> Property
+prop_foldlMap1 t =
+    Foldable1.foldlMap1 Inj f t === Foldable1.foldlMap1 Inj f (Foldable1.toNonEmpty t)
+  where
+    f z x = z :* Inj x
+#endif
+
+prop_leaves :: Tree A -> Property
+prop_leaves t = leaves t === foldTree f t []
+  where
+    f x [] = (x:)
+    f _ ks = foldr (.) id ks
+
+prop_edges :: Tree A -> Property
+prop_edges t = edges t === foldTree f t Nothing []
+  where
+    f x ks mp es =
+      maybe [] (\p -> [(p, x)]) mp ++
+      foldr (\k -> k (Just x)) es ks
+
+prop_pathsToRoot :: Tree A -> Property
+prop_pathsToRoot t = pathsToRoot t === foldTree f t []
+  where
+    f x ks ps = Node (x :| ps) (map ($ (x:ps)) ks)
+
+prop_pathsFromRoot :: Tree A -> Property
+prop_pathsFromRoot t = pathsFromRoot t === foldTree f t []
+  where
+    f x ks ps = Node (NE.reverse (x :| ps)) (map ($ (x:ps)) ks)
+
+prop_unfoldTreeM :: Tree A -> Property
+prop_unfoldTreeM t =
+  t' === t .&&.
+  xs === toList t'
+  where
+    (xs, t') = T.unfoldTreeM f t
+    f (Node x ts) = ([x], (x, ts))
+
+prop_unfoldForestM :: [Tree A] -> Property
+prop_unfoldForestM ts =
+  ts' === ts .&&.
+  xs === concatMap toList ts'
+  where
+    (xs, ts') = T.unfoldForestM f ts
+    f (Node x ts) = ([x], (x, ts))
+
+prop_unfoldTreeM_BF :: Tree A -> Property
+prop_unfoldTreeM_BF t =
+  t' === t .&&.
+  xs === concat (T.levels t')
+  where
+    (xs, t') = T.unfoldTreeM_BF f t
+    f (Node x ts1) = ([x], (x, ts1))
+
+prop_unfoldForestM_BF :: [Tree A] -> Property
+prop_unfoldForestM_BF ts =
+  ts' === ts .&&.
+  xs === concat (concat (List.transpose (map T.levels ts')))
+  where
+    (xs, ts') = T.unfoldForestM_BF f ts
+    f (Node x ts1) = ([x], (x, ts1))
+
+prop_PostOrder_toList :: PostOrder A -> Property
+prop_PostOrder_toList t = toList t === foldr (:) [] t
+
+prop_PostOrder_foldMap :: PostOrder A -> Property
+prop_PostOrder_foldMap t =
+  foldMap (:[]) t === toList t .&&.
+  foldMap (:[]) t === foldMapDefault (:[]) t
+
+-- See note on prop_foldMap_structure.
+prop_PostOrder_foldMap_structure :: PostOrder A -> Property
+prop_PostOrder_foldMap_structure t =
+  foldMap UInj t === foldTree (\x ys -> fold ys <> UInj x) (unPostOrder t)
+
+prop_PostOrder_foldl' :: PostOrder A -> Property
+prop_PostOrder_foldl' t = foldl' (flip (:)) [] t === reverse (toList t)
+
+prop_PostOrder_foldr1 :: PostOrder A -> Property
+prop_PostOrder_foldr1 t =
+  foldr1 (:*) (fmap Inj t) === foldr1 (:*) (map Inj (toList t))
+
+prop_PostOrder_foldl1 :: PostOrder A -> Property
+prop_PostOrder_foldl1 t =
+  foldl1 (:*) (fmap Inj t) === foldl1 (:*) (map Inj (toList t))
+
+prop_PostOrder_foldr_infinite :: NonNegative Int -> Property
+prop_PostOrder_foldr_infinite (NonNegative n) =
+    forAllShow genInf (const "<possibly infinite tree>") $
+        \t -> length (take n (foldr (:) [] t)) <= n
+  where
+    genInf = Node () <$> oneof [listOf genInf, infiniteListOf genInf]
+
+prop_PostOrder_maximum :: PostOrder OrdA -> Property
+prop_PostOrder_maximum t = maximum t === maximum (toList t)
+
+prop_PostOrder_minimum :: PostOrder OrdA -> Property
+prop_PostOrder_minimum t = minimum t === minimum (toList t)
+
+prop_PostOrder_sum :: PostOrder OrdA -> Property
+prop_PostOrder_sum t = sum t === sum (toList t)
+
+prop_PostOrder_product :: PostOrder OrdA -> Property
+prop_PostOrder_product t = product t === product (toList t)
+
+prop_PostOrder_traverse :: Fun A B -> PostOrder A -> Property
+prop_PostOrder_traverse f t = xs === toList t .&&. t' === fmap (applyFun f) t
+  where
+    (xs, t') = traverse (\x -> ([x], applyFun f x)) t
+
+#if MIN_VERSION_base(4,18,0)
+-- See note on prop_foldMap1_structure.
+prop_PostOrder_foldMap1_structure :: PostOrder A -> Property
+prop_PostOrder_foldMap1_structure t =
+  Foldable1.foldMap1 Inj t === foldTree f (unPostOrder t)
+  where
+    f x [] = Inj x
+    f x (y:ys) = Foldable1.fold1 (y :| ys) <> Inj x
+
+prop_PostOrder_toNonEmpty :: PostOrder A -> Property
+prop_PostOrder_toNonEmpty t = Foldable1.toNonEmpty t === NE.fromList (toList t)
+
+prop_PostOrder_foldrMap1 :: PostOrder A -> Property
+prop_PostOrder_foldrMap1 t =
+    Foldable1.foldrMap1 Inj f t ===
+    Foldable1.foldrMap1 Inj f (Foldable1.toNonEmpty t)
+  where
+    f x z = Inj x :* z
+
+prop_PostOrder_foldlMap1' :: PostOrder A -> Property
+prop_PostOrder_foldlMap1' t =
+    Foldable1.foldlMap1' Inj f t ===
+    Foldable1.foldlMap1' Inj f (Foldable1.toNonEmpty t)
+  where
+    f z x = z :* Inj x
+
+prop_PostOrder_foldlMap1 :: PostOrder A -> Property
+prop_PostOrder_foldlMap1 t =
+    Foldable1.foldlMap1 Inj f t ===
+    Foldable1.foldlMap1 Inj f (Foldable1.toNonEmpty t)
+  where
+    f z x = z :* Inj x
+#endif
+
+-- * Strictness tests
+
+-- See Note [Testing strictness of folds] in map-strictness.hs
+
+prop_strictness_foldr :: Tree A -> Func2 A B (Bot B) -> Bot B -> Property
+prop_strictness_foldr t fun (Bot z) =
+  isBottom (Foldable.foldr f z t) ===
+  isBottom (Foldable.foldr f z (T.flatten t))
+  where
+    f = coerce (applyFunc2 fun) :: A -> B -> B
+
+prop_strictness_foldl' :: Tree A -> Func2 B A (Bot B) -> Bot B -> Property
+prop_strictness_foldl' t fun (Bot z) =
+  isBottom (Foldable.foldl' f z t) ===
+  isBottom (Foldable.foldl' f z (T.flatten t))
+  where
+    f = coerce (applyFunc2 fun) :: B -> A -> B
+
+prop_PostOrder_strictness_foldr
+  :: PostOrder A -> Func2 A B (Bot B) -> Bot B -> Property
+prop_PostOrder_strictness_foldr t fun (Bot z) =
+  isBottom (Foldable.foldr f z t) ===
+  isBottom (Foldable.foldr f z (toPostOrderList t))
+  where
+    f = coerce (applyFunc2 fun) :: A -> B -> B
+
+prop_PostOrder_strictness_foldl
+  :: PostOrder A -> Func2 B A (Bot B) -> Bot B -> Property
+prop_PostOrder_strictness_foldl t fun (Bot z) =
+  isBottom (Foldable.foldl f z t) ===
+  isBottom (Foldable.foldl f z (toPostOrderList t))
+  where
+    f = coerce (applyFunc2 fun) :: B -> A -> B
+
+prop_PostOrder_strictness_foldr'
+  :: PostOrder A -> Func2 A B (Bot B) -> Bot B -> Property
+prop_PostOrder_strictness_foldr' t fun (Bot z) =
+  isBottom (Foldable.foldr' f z t) ===
+  isBottom (z `seq` Foldable.foldr' f z (toPostOrderList t))
+  where
+    f = coerce (applyFunc2 fun) :: A -> B -> B
+
+prop_PostOrder_strictness_foldl'
+  :: PostOrder A -> Func2 B A (Bot B) -> Bot B -> Property
+prop_PostOrder_strictness_foldl' t fun (Bot z) =
+  isBottom (Foldable.foldl' f z t) ===
+  isBottom (Foldable.foldl' f z (toPostOrderList t))
+  where
+    f = coerce (applyFunc2 fun) :: B -> A -> B
+
+toPostOrderList :: PostOrder a -> [a]
+toPostOrderList (PostOrder t) = go t []
+  where
+    go (Node x ts) xs = foldr go (x:xs) ts

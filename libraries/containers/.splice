@@ -1,0 +1,6 @@
+[splice]
+	id = b66438c7aa58c9b1
+	commit = 953428ad079d5708df696442f9bdeaccd1acfc6c
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/containers.git
+	default-pin = 953428ad079d5708df696442f9bdeaccd1acfc6c

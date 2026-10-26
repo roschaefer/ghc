@@ -1,0 +1,134 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns #-}
+module Main where
+
+import Control.DeepSeq (NFData, rnf)
+import Control.Exception (evaluate)
+import Control.Monad (filterM)
+import qualified Control.Monad.Trans.State.Strict as State
+import Data.Coerce (coerce)
+import qualified Data.Foldable as F
+import Data.Monoid (All(..))
+#if MIN_VERSION_base(4,18,0)
+import Data.Monoid (Sum(..))
+import qualified Data.Foldable1 as Foldable1
+#endif
+import qualified Data.IntSet as IntSet
+import Test.Tasty.Bench (Benchmark, Benchmarkable, bench, bgroup, defaultMain, whnf, nf)
+import qualified Data.Tree as T
+
+import Utils.Fold (foldBenchmarks)
+
+main :: IO ()
+main = do
+  evaluate $ rnf ts `seq` rnf tsBool
+  defaultMain
+    [ bgroup "Foldable"
+      [ bgroup "folds"
+        [ bgroup label $ foldBenchmarks foldr foldl F.foldr' F.foldl' foldMap t
+        | Tree label t <- ts
+        ]
+      , bgroup "foldr1" $ forTs tsBool $ whnf (foldr1 (&&))
+      , bgroup "foldl1" $ forTs tsBool $ whnf (foldl1 (flip (&&)))
+      , bgroup "toList" $ forTs ts $ nf F.toList
+      , bgroup "elem" $ forTs ts $ whnf (elem 0)
+      , bgroup "maximum" $ forTs ts $ whnf maximum
+      , bgroup "sum" $ forTs ts $ whnf sum
+      ]
+#if MIN_VERSION_base(4,18,0)
+    , bgroup "Foldable1"
+      [ bgroup "fold1" $ forTs tsBool $ whnf Foldable1.fold1 . (coerce :: T.Tree Bool -> T.Tree All)
+      , bgroup "foldMap1" $ forTs tsBool $ whnf (Foldable1.foldMap1 All)
+      , bgroup "foldMap1'" $ forTs ts $ whnf (Foldable1.foldMap1' Sum)
+      , bgroup "toNonEmpty" $ forTs ts $ nf Foldable1.toNonEmpty
+      , bgroup "maximum" $ forTs ts $ whnf Foldable1.maximum
+      , bgroup "last" $ forTs ts $ whnf Foldable1.last
+      , bgroup "foldrMap1_1" $ forTs tsBool $ whnf (Foldable1.foldrMap1 id (&&))
+      , bgroup "foldrMap1_2" $ forTs ts $ whnf (length . Foldable1.foldrMap1 (:[]) (:))
+      , bgroup "foldlMap1'" $ forTs ts $ whnf (Foldable1.foldlMap1' id (+))
+      , bgroup "foldlMap1" $ forTs tsBool $ whnf (Foldable1.foldlMap1 id (flip (&&)))
+      ]
+#endif
+    , bgroup "leaves" $ forTs ts $ nf T.leaves
+    , bgroup "edges" $ forTs ts $ nf T.edges
+    , bench "unfoldForestM" $ whnf unfoldForestM_sum 100
+    , bench "unfoldForestM_BF" $ whnf unfoldForestM_BF_bfs 1000
+    , bgroup "PostOrder"
+      [ bgroup "Foldable"
+        [ bgroup "folds"
+          [ bgroup label $
+              foldBenchmarks foldr foldl F.foldr' F.foldl' foldMap (T.PostOrder t)
+          | Tree label t <- ts
+          ]
+        , bgroup "foldr1" $ forPostOrders tsBool $ whnf (foldr1 (&&))
+        , bgroup "foldl1" $ forPostOrders tsBool $ whnf (foldl1 (flip (&&)))
+        , bgroup "toList" $ forPostOrders ts $ nf F.toList
+        , bgroup "elem" $ forPostOrders ts $ whnf (elem 0)
+        , bgroup "maximum" $ forPostOrders ts $ whnf maximum
+        , bgroup "sum" $ forPostOrders ts $ whnf sum
+        ]
+#if MIN_VERSION_base(4,18,0)
+      , bgroup "Foldable1"
+        [ bgroup "fold1" $ forPostOrders tsBool $ whnf Foldable1.fold1 . (coerce :: T.PostOrder Bool -> T.PostOrder All)
+        , bgroup "foldMap1" $ forPostOrders tsBool $ whnf (Foldable1.foldMap1 All)
+        , bgroup "foldMap1'" $ forPostOrders ts $ whnf (Foldable1.foldMap1' Sum)
+        , bgroup "toNonEmpty" $ forPostOrders ts $ nf Foldable1.toNonEmpty
+        , bgroup "maximum" $ forPostOrders ts $ whnf Foldable1.maximum
+        , bgroup "foldrMap1_1" $ forPostOrders tsBool $ whnf (Foldable1.foldrMap1 id (&&))
+        , bgroup "foldrMap1_2" $ forPostOrders ts $ whnf (length . Foldable1.foldrMap1 (:[]) (:))
+        , bgroup "foldlMap1'" $ forPostOrders ts $ whnf (Foldable1.foldlMap1' id (+))
+        , bgroup "foldlMap1" $ forTs tsBool $ whnf (Foldable1.foldlMap1 id (flip (&&)))
+        ]
+#endif
+      ]
+    ]
+  where
+    ts = [binaryTree, lineTree] <*> [1000, 1000000]
+    tsBool = [t { getT = True <$ getT t } | t <- ts]
+
+forTs :: [Tree a] -> (T.Tree a -> Benchmarkable) -> [Benchmark]
+forTs ts f = [bench label (f t) | Tree label t <- ts]
+
+forPostOrders :: [Tree a] -> (T.PostOrder a -> Benchmarkable) -> [Benchmark]
+forPostOrders ts f = forTs ts (f . T.PostOrder)
+
+data Tree a = Tree
+  { getLabel :: String
+  , getT :: T.Tree a
+  }
+
+instance NFData a => NFData (Tree a) where
+  rnf (Tree label t) = rnf label `seq` rnf t
+
+binaryTree :: Int -> Tree Int
+binaryTree n = Tree label t
+  where
+    label = "bin,n=" ++ show n
+    t = T.unfoldTree (\x -> (x, takeWhile (<=n) [2*x, 2*x+1])) 1
+
+lineTree :: Int -> Tree Int
+lineTree n = Tree label t
+  where
+    label = "line,n=" ++ show n
+    t = T.unfoldTree (\x -> (x, [x+1 | x+1 <= n])) 1
+
+unfoldForestM_sum :: Int -> Int
+unfoldForestM_sum !n = State.execState (T.unfoldForestM step [2..10]) 0
+  where
+    step x = (x, [2*x, 3*x .. n]) <$ State.modify' (+x)
+
+unfoldForestM_BF_bfs :: Int -> [T.Tree Int]
+unfoldForestM_BF_bfs !n = bfs (\x -> [2*x, 3*x .. n]) [10, 9 .. 2]
+
+-- Adapted from
+-- https://hackage-content.haskell.org/package/algebraic-graphs-0.8/docs/Algebra-Graph-AdjacencyMap-Algorithm.html#v:bfsForest
+bfs :: (Int -> [Int]) -> [Int] -> [T.Tree Int]
+bfs neighbors start = State.evalState (explore start) IntSet.empty
+  where
+    explore vs = filterM discovered vs >>= T.unfoldForestM_BF walk
+    walk !v = (,) v <$> filterM discovered (neighbors v)
+    discovered !v =
+      State.state (IntSet.alterF (\b -> (not b, True)) v) <* forceState
+
+forceState ::  State.State s ()
+forceState = State.modify' id

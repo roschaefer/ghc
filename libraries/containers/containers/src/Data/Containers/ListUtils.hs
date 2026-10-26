@@ -1,0 +1,221 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns #-}
+#ifdef __GLASGOW_HASKELL__
+{-# LANGUAGE Trustworthy #-}
+#endif
+
+-----------------------------------------------------------------------------
+-- |
+-- Module      :  Data.Containers.ListUtils
+-- Copyright   :  (c) Gershom Bazerman 2018
+-- License     :  BSD-style
+-- Maintainer  :  libraries@haskell.org
+-- Portability :  portable
+--
+-- This module provides efficient containers-based functions on the list type.
+--
+-- In the documentation, \(n\) is the number of elements in the list while
+-- \(d\) is the number of distinct elements in the list. \(W\) is the number
+-- of bits in an 'Int'.
+--
+-- @since 0.6.0.1
+-----------------------------------------------------------------------------
+
+module Data.Containers.ListUtils (
+       nubOrd,
+       nubOrdOn,
+       nubInt,
+       nubIntOn
+       ) where
+
+import Data.Set (Set)
+import qualified Data.Set as Set
+import qualified Data.IntSet as IntSet
+import Data.IntSet (IntSet)
+#ifdef __GLASGOW_HASKELL__
+import GHC.Exts (build, oneShot)
+#endif
+
+-- *** Ord-based nubbing ***
+
+
+-- | \( O(n \log d) \). The @nubOrd@ function removes duplicate elements from a
+-- list. In particular, it keeps only the first occurrence of each element. By
+-- using a 'Set' internally it has better asymptotics than the standard
+-- 'Data.List.nub' function.
+--
+-- ==== Strictness
+--
+-- @nubOrd@ is strict in the elements of the list.
+--
+-- ==== Efficiency note
+--
+-- When applicable, it is almost always better to use 'nubInt' or 'nubIntOn'
+-- instead of this function, although it can be a little worse in certain
+-- pathological cases. For example, to nub a list of characters, use
+--
+-- @ nubIntOn fromEnum xs @
+--
+-- @since 0.6.0.1
+nubOrd :: Ord a => [a] -> [a]
+nubOrd = nubOrdOn id
+{-# INLINE nubOrd #-}
+
+-- | The @nubOrdOn@ function behaves just like 'nubOrd' except it performs
+-- comparisons not on the original datatype, but a user-specified projection
+-- from that datatype.
+--
+-- ==== Strictness
+--
+-- @nubOrdOn@ is strict in the values of the function applied to the
+-- elements of the list.
+--
+-- @since 0.6.0.1
+nubOrdOn :: Ord b => (a -> b) -> [a] -> [a]
+nubOrdOn f =  -- Inline with 1 arg
+  \xs -> nubOrdOnExcluding f Set.empty xs
+{-# INLINE nubOrdOn #-}
+
+-- Splitting nubOrdOn like this means that we don't have to worry about
+-- matching specifically on Set.empty in the rewrite-back rule.
+nubOrdOnExcluding :: Ord b => (a -> b) -> Set b -> [a] -> [a]
+nubOrdOnExcluding f = go
+  where
+    go !_ [] = []
+    go !s (x:xs) = case tryInsertSet fx s of
+      Nothing -> go s xs
+      Just !s' -> -- See Note [Eager set insertions]
+        x : go s' xs
+      where !fx = f x
+
+tryInsertSet :: Ord a => a -> Set a -> Maybe (Set a)
+tryInsertSet = Set.alterF (\found -> if found then Nothing else Just True)
+{-# INLINE tryInsertSet #-}
+
+#ifdef __GLASGOW_HASKELL__
+-- We want this inlinable to specialize to the necessary Ord instance.
+{-# INLINABLE [1] nubOrdOnExcluding #-}
+
+{-# RULES
+-- Rewrite to a fusible form.
+"nubOrdOn" [~1] forall f as s. nubOrdOnExcluding  f s as =
+  build (\c n -> foldr (nubOrdOnFB f c) (constNubOn n) as s)
+
+-- Rewrite back to a plain form
+"nubOrdOnList" [1] forall f as s.
+    foldr (nubOrdOnFB f (:)) (constNubOn []) as s =
+       nubOrdOnExcluding f s as
+ #-}
+
+nubOrdOnFB :: Ord b
+           => (a -> b)
+           -> (a -> r -> r)
+           -> a
+           -> (Set b -> r)
+           -> Set b
+           -> r
+nubOrdOnFB f c =  -- Inline with 2 args
+  \x r -> oneShot (\ !s ->
+    let !y = f x
+    in case tryInsertSet y s of
+         Nothing -> r s
+         Just !s' -> -- See Note [Eager set insertions]
+           x `c` r s')
+{-# INLINE [0] nubOrdOnFB #-}
+
+constNubOn :: a -> b -> a
+constNubOn x !_ = x
+{-# INLINE [0] constNubOn #-}
+#endif
+
+
+-- *** Int-based nubbing ***
+
+
+-- | \( O(n \min(d,W)) \). The @nubInt@ function removes duplicate 'Int'
+-- values from a list. In particular, it keeps only the first occurrence
+-- of each element. By using an 'IntSet' internally, it attains better
+-- asymptotics than the standard 'Data.List.nub' function.
+--
+-- See also 'nubIntOn', a more widely applicable generalization.
+--
+-- ==== Strictness
+--
+-- @nubInt@ is strict in the elements of the list.
+--
+-- @since 0.6.0.1
+nubInt :: [Int] -> [Int]
+nubInt = nubIntOn id
+{-# INLINE nubInt #-}
+
+-- | The @nubIntOn@ function behaves just like 'nubInt' except it performs
+-- comparisons not on the original datatype, but a user-specified projection
+-- from that datatype. For example, @nubIntOn 'fromEnum'@ can be used to
+-- nub characters and typical fixed-with numerical types efficiently.
+--
+-- ==== Strictness
+--
+-- @nubIntOn@ is strict in the values of the function applied to the
+-- elements of the list.
+--
+-- @since 0.6.0.1
+nubIntOn :: (a -> Int) -> [a] -> [a]
+nubIntOn f =  -- Inline with 1 arg
+  \xs -> nubIntOnExcluding f IntSet.empty xs
+{-# INLINE nubIntOn #-}
+
+-- Splitting nubIntOn like this means that we don't have to worry about
+-- matching specifically on IntSet.empty in the rewrite-back rule.
+nubIntOnExcluding :: (a -> Int) -> IntSet -> [a] -> [a]
+nubIntOnExcluding f = go
+  where
+    go !_ [] = []
+    go !s (x:xs)
+      | fx `IntSet.member` s = go s xs
+      | otherwise =
+          let !s' = IntSet.insert fx s -- See Note [Eager set insertions]
+          in x : go s' xs
+      where !fx = f x
+
+#ifdef __GLASGOW_HASKELL__
+-- We don't mark this INLINABLE because it doesn't seem obviously useful
+-- to inline it anywhere; the elements the function operates on are actually
+-- pulled from a list and installed in a list; the situation is very different
+-- when fusion occurs. In this case, we let GHC make the call.
+{-# NOINLINE [1] nubIntOnExcluding #-}
+
+{-# RULES
+"nubIntOn" [~1] forall f as s. nubIntOnExcluding  f s as =
+  build (\c n -> foldr (nubIntOnFB f c) (constNubOn n) as s)
+"nubIntOnList" [1] forall f as s. foldr (nubIntOnFB f (:)) (constNubOn []) as s =
+  nubIntOnExcluding f s as
+ #-}
+
+nubIntOnFB :: (a -> Int)
+           -> (a -> r -> r)
+           -> a
+           -> (IntSet -> r)
+           -> IntSet
+           -> r
+nubIntOnFB f c =  -- Inline with 2 args
+  \x r -> oneShot (\ !s ->
+    let !y = f x
+    in if y `IntSet.member` s
+       then r s
+       else let !s' = IntSet.insert y s -- See Note [Eager set insertions]
+            in x `c` r s')
+{-# INLINE [0] nubIntOnFB #-}
+#endif
+
+-- Note [Eager set insertions]
+-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+--
+-- In nubOrd and nubInt we insert new elements into the set eagerly. This means
+-- that we perform a bit of work before we yield the current element which is
+-- not strictly necessary.
+--
+-- The lazier option would be to create a thunk for the new set, which would get
+-- forced by the membership check in the next step. However, a thunk has a small
+-- overhead, and the small costs of thunks at every step adds up to a noticeable
+-- amount of time and allocations overall. So, we avoid this and perform the
+-- insertions eagerly instead.

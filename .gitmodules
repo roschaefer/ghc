@@ -1,4 +1,0 @@
-[submodule "libraries/containers"]
-	path = libraries/containers
-	url = https://gitlab.haskell.org/ghc/packages/containers.git
-	ignore = untracked

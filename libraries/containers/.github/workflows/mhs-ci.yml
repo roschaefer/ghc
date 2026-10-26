@@ -1,0 +1,36 @@
+name: MicroHs CI for containers
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  build-mhs-containers:
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout containers repo
+      uses: actions/checkout@v4
+      with:
+        path: cont
+    # mhs
+    - name: checkout mhs repo
+      uses: actions/checkout@v4
+      with:
+        repository: augustss/MicroHs
+        ref: v0.16.5.0
+        path: mhs
+    - name: make and install mhs
+      run: |
+        cd mhs
+        make minstall
+    - name: compile and install containers package
+      run: |
+        PATH="$HOME/.mcabal/bin:$PATH"
+        cd cont/containers
+        mcabal -r install
+    - name: cleanup
+      run: |
+        rm -rf $HOME/.mcabal
+
