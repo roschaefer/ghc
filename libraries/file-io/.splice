@@ -1,0 +1,6 @@
+[splice]
+	id = 056858225027611f
+	commit = fc4f656f64f905aae833fbce55e0eb738f363fff
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/file-io.git
+	default-pin = fc4f656f64f905aae833fbce55e0eb738f363fff

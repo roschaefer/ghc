@@ -2,9 +2,6 @@
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git
 	ignore = untracked
-[submodule "libraries/file-io"]
-	path = libraries/file-io
-	url = https://gitlab.haskell.org/ghc/packages/file-io.git
 [submodule "libraries/template-haskell-lift"]
 	path = libraries/template-haskell-lift
 	url = https://gitlab.haskell.org/ghc/template-haskell-lift.git
