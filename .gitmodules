@@ -2,10 +2,6 @@
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git
 	ignore = untracked
-[submodule "libraries/terminfo"]
-	path = libraries/terminfo
-	url = https://gitlab.haskell.org/ghc/packages/terminfo.git
-	ignore = untracked
 [submodule "libraries/transformers"]
 	path = libraries/transformers
 	url = https://gitlab.haskell.org/ghc/packages/transformers.git

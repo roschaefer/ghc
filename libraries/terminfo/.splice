@@ -1,0 +1,6 @@
+[splice]
+	id = 8856daf14f629b69
+	commit = 5298f429f4fa73815a654c119c751ea7ab00036a
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/terminfo.git
+	default-pin = 5298f429f4fa73815a654c119c751ea7ab00036a
