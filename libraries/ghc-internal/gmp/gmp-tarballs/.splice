@@ -1,0 +1,6 @@
+[splice]
+	id = 30e736c9727515c1
+	commit = 01149ce3471128e9fe0feca607579981f4b64395
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/gmp-tarballs.git
+	default-pin = 01149ce3471128e9fe0feca607579981f4b64395
