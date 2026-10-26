@@ -1,0 +1,6 @@
+[splice]
+	id = a0e5518766c91d2b
+	commit = 9f583ee3469f18b555aa619b6dbe908414296c22
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/array.git
+	default-pin = 9f583ee3469f18b555aa619b6dbe908414296c22
