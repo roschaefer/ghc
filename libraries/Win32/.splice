@@ -1,0 +1,6 @@
+[splice]
+	id = 97a386fa4b9b2f6a
+	commit = 7d0772bb265a6c59eb14c441cf65c778895528df
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/Win32.git
+	default-pin = 7d0772bb265a6c59eb14c441cf65c778895528df
