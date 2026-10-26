@@ -1,0 +1,6 @@
+[splice]
+	id = 9170483b988c6b28
+	commit = 4bbf7ce6b03c89f3afcdb0ef57505967069bf117
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/exceptions.git
+	default-pin = 4bbf7ce6b03c89f3afcdb0ef57505967069bf117
