@@ -1,7 +1,3 @@
-[submodule "libraries/Cabal"]
-	path = libraries/Cabal
-	url = https://gitlab.haskell.org/ghc/packages/Cabal.git
-	ignore = untracked
 [submodule "libraries/containers"]
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git

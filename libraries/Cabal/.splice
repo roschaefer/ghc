@@ -1,0 +1,6 @@
+[splice]
+	id = 95f49de58a793423
+	commit = 8d1f5a33662be0db0654061fb53fb00e3f4417e0
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/Cabal.git
+	default-pin = 8d1f5a33662be0db0654061fb53fb00e3f4417e0
