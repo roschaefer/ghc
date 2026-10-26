@@ -1,0 +1,6 @@
+[splice]
+	id = 32f65abfa5ce6105
+	commit = ebcb68506e67de9c8190c0394e10c913593d85da
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/semaphore-compat.git
+	default-pin = ebcb68506e67de9c8190c0394e10c913593d85da

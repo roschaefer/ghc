@@ -1,0 +1,4 @@
+packages: .
+
+package semaphore-compat
+  flags: +build-testing

@@ -2,10 +2,6 @@
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git
 	ignore = untracked
-[submodule "libraries/semaphore-compat"]
-	path = libraries/semaphore-compat
-	url = https://gitlab.haskell.org/ghc/semaphore-compat.git
-	ignore = untracked
 [submodule "libraries/stm"]
 	path = libraries/stm
 	url = https://gitlab.haskell.org/ghc/packages/stm.git
