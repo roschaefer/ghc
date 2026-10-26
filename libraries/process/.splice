@@ -1,0 +1,6 @@
+[splice]
+	id = ce2169f6850dd8f7
+	commit = 11fd247ad33208da7a914acf15d4a09d64a6a4c4
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/process.git
+	default-pin = 11fd247ad33208da7a914acf15d4a09d64a6a4c4
