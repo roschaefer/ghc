@@ -2,10 +2,6 @@
 	path = libraries/containers
 	url = https://gitlab.haskell.org/ghc/packages/containers.git
 	ignore = untracked
-[submodule "libraries/haskeline"]
-	path = libraries/haskeline
-	url = https://gitlab.haskell.org/ghc/packages/haskeline.git
-	ignore = untracked
 [submodule "libraries/pretty"]
 	path = libraries/pretty
 	url = https://gitlab.haskell.org/ghc/packages/pretty.git

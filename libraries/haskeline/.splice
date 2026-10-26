@@ -1,0 +1,6 @@
+[splice]
+	id = 0de219e0816e5887
+	commit = 0df466d916f6f9ae7c9d94bd1454cf851d41d6e4
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/haskeline.git
+	default-pin = 0df466d916f6f9ae7c9d94bd1454cf851d41d6e4
