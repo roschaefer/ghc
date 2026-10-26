@@ -1,0 +1,6 @@
+[splice]
+	id = e9daefc790e905da
+	commit = 5323bdcc5229191884edb186709b7b91fe5117ee
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/libffi-clib.git
+	default-pin = 5323bdcc5229191884edb186709b7b91fe5117ee
