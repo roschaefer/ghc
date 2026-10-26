@@ -1,0 +1,6 @@
+[splice]
+	id = 594ded5f207082f0
+	commit = 55e6950927bfc52cf0f03728a6566b1c61598e26
+[upstream "origin"]
+	url = https://github.com/m-renaud/haddock-autolink
+	default-pin = 55e6950927bfc52cf0f03728a6566b1c61598e26
