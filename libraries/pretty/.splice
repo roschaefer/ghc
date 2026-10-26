@@ -1,0 +1,6 @@
+[splice]
+	id = 4f28072c39628854
+	commit = c3a1469306b35fa5d023dc570554f97f1a90435d
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/pretty.git
+	default-pin = c3a1469306b35fa5d023dc570554f97f1a90435d
