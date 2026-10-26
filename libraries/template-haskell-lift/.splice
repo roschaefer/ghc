@@ -1,0 +1,6 @@
+[splice]
+	id = fb533cac49762c12
+	commit = 296c16e83a6e4430c01a84ca835ff878b6309458
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/template-haskell-lift.git
+	default-pin = 296c16e83a6e4430c01a84ca835ff878b6309458

@@ -1,0 +1,6 @@
+.DS_Store
+dist-*
+.stack-work/
+cabal.project.local
+cabal.project.local~
+.ghc.environment.*
