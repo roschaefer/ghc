@@ -1,0 +1,6 @@
+[splice]
+	id = fedb7e39827f679a
+	commit = 9e6fc27711766141e63d0743919d9605783dbecb
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/deepseq.git
+	default-pin = 9e6fc27711766141e63d0743919d9605783dbecb
