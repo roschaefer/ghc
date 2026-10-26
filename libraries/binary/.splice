@@ -1,0 +1,6 @@
+[splice]
+	id = 203be98c200e7a69
+	commit = 68fb6e0ad784f2385a4ff2f2e26b3ad70787f24d
+[upstream "origin"]
+	url = https://gitlab.haskell.org/ghc/packages/binary.git
+	default-pin = 68fb6e0ad784f2385a4ff2f2e26b3ad70787f24d
